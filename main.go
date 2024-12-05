@@ -32,47 +32,47 @@ import (
 // arg 2 - sway input id
 
 var layout string
-var kb_index int
+var kbIndex int
 
 var data map[int]int
-var ru_data map[int]int
-var en_data map[int]int
-var sp_ru_data map[int]int
-var sp_en_data map[int]int
+var ruData map[int]int
+var enData map[int]int
+var ruSpData map[int]int
+var enSpData map[int]int
 
 func showResults() {
 	for k, v := range data {
 		if k > 1000 {
 			if (k >= 1016 && k <= 1027) || (k >= 1030 && k <= 1041) || (k >= 1044 && k <= 1052) {
-				ru_data[k] = v
+				ruData[k] = v
 			} else {
-				sp_ru_data[k] = v
+				ruSpData[k] = v
 			}
 		} else {
 			if (k >= 16 && k <= 25) || (k >= 30 && k <= 38) || (k >= 44 && k <= 50) {
-				en_data[k] = v
+				enData[k] = v
 			} else {
-				sp_en_data[k] = v
+				enSpData[k] = v
 			}
 		}
 	}
-	ru_json, _ := json.MarshalIndent(ru_data, "", "  ")
-	en_json, _ := json.MarshalIndent(en_data, "", "  ")
-	ru_sp_json, _ := json.MarshalIndent(sp_ru_data, "", "  ")
-	en_sp_json, _ := json.MarshalIndent(sp_en_data, "", "  ")
+	ruJSON, _ := json.MarshalIndent(ruData, "", "  ")
+	enJSON, _ := json.MarshalIndent(enData, "", "  ")
+	ruSpJSON, _ := json.MarshalIndent(ruSpData, "", "  ")
+	enSpJSON, _ := json.MarshalIndent(enSpData, "", "  ")
 
-	fmt.Println("\nru_data = ", string(ru_json))
-	fmt.Println("en_data = ", string(en_json))
-	fmt.Println("sp_ru_data = ", string(ru_sp_json))
-	fmt.Println("sp_en_data = ", string(en_sp_json))
+	fmt.Println("\nru_data = ", string(ruJSON))
+	fmt.Println("en_data = ", string(enJSON))
+	fmt.Println("sp_ru_data = ", string(ruSpJSON))
+	fmt.Println("sp_en_data = ", string(enSpJSON))
 }
 
 func main() {
 	data = map[int]int{}
-	ru_data = map[int]int{}
-	en_data = map[int]int{}
-	sp_ru_data = map[int]int{}
-	sp_en_data = map[int]int{}
+	ruData = map[int]int{}
+	enData = map[int]int{}
+	ruSpData = map[int]int{}
+	enSpData = map[int]int{}
 	ctx := context.Background()
 	client, err := sway.New(ctx)
 	if err != nil {
@@ -85,7 +85,7 @@ func main() {
 	}
 	defer dev.File.Close()
 
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
@@ -99,7 +99,7 @@ func main() {
 	}
 	for i, v := range inputs {
 		if v.Type == "keyboard" && v.Identifier == os.Args[2] {
-			kb_index = i
+			kbIndex = i
 		}
 	}
 
@@ -113,7 +113,10 @@ func main() {
 			if ev.Type == evdev.EV_KEY {
 				if ev.Value == 1 {
 					inputs, err = client.GetInputs(ctx)
-					layout = *inputs[kb_index].XKBActiveLayoutName
+					if err != nil {
+						log.Fatal(err)
+					}
+					layout = *inputs[kbIndex].XKBActiveLayoutName
 					if layout == "English (US)" {
 						data[int(ev.Code)] += 1
 					} else if layout == "Russian" {
